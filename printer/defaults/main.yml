@@ -1,0 +1,3 @@
+---
+# printer_model: "drv:///sample.drv/generic.ppd"
+aur_src_dir: /usr/local/src/aur

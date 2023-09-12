@@ -1,0 +1,8 @@
+---
+
+- name: restart cups
+  service:
+    name: cups
+    state: restarted
+  async: 45
+  poll: 0

@@ -1,0 +1,43 @@
+---
+- name: Configure network HP LaserJet 6 printer
+  become: yes
+
+- name: Install necessary packages
+  yum:
+    name:
+      - hplip
+      - cups
+      - hpijs
+    state: present
+
+- name: Start CUPS service
+  service:
+    name: cups
+    state: started
+
+# - name: Configure CUPS print server
+#   lineinfile:
+#     path: /etc/cups/cupsd.conf
+#     regexp: '^Listen localhost:631$'
+#     line: 'Port 631'
+#   notify: restart cups
+
+- name: Install printer driver
+  hplip:
+    name: HP_LaserJet_6
+    state: present
+
+- name: Add printer to CUPS
+  cups_queue:
+    name: {{ printer_name }}
+    model: HP LaserJet 6
+    # uri: lpd://{{ printer_ip }}/queue
+    uri: socket://{{ printer_name }}.{{ domain }}:9100
+    state: present
+
+- name: Restart CUPS print server
+  service:
+    name: cups
+    state: restarted
+  async: 45
+  poll: 0
