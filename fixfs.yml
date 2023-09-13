@@ -1,0 +1,124 @@
+---
+- name: playbook to fix filesystems
+  hosts: rhel8testvm3
+  become: true
+  tasks:
+
+    - name: Install lvm2 dependency
+      package:
+        name: lvm2
+        state: present
+
+    - name: creating logical volume for /var/tmp
+      lvol:
+        vg:  rootvg
+        lv:  vartmplv
+        size: 10g
+        force: yes
+
+    - name: Create directory /var/tmp1 if does not exist
+      file:
+        path: /var/tmp1
+        state: directory
+        mode: '0777'
+
+    - name: format the xfs filesystem
+      filesystem:
+        fstype: xfs
+        dev: /dev/rootvg/vartmplv
+
+    - name: mount the lv on /var/tmp1
+      mount:
+        path: /var/tmp1
+        src: /dev/rootvg/vartmplv
+        fstype: xfs
+        state: mounted
+
+    - name: copy /var/tmp to /var/tmp1
+      synchronize:
+        src: /var/tmp/
+        dest: /var/tmp1
+        delete: true
+        recursive: true 
+
+    - name: unmount /var/tmp1
+      mount:
+        path: /var/tmp1
+        state: unmounted
+
+    - name: remount /var/tmp with new lv
+      mount:
+        path: /var/tmp
+        src: /dev/rootvg/vartmplv
+        fstype: xfs
+        state: mounted
+     
+    - name: cleanup /var/tmp1
+      file:
+        state: absent
+        path: /var/tmp1
+
+    - name: creating logical volume for /opt
+      lvol:
+        vg:  rootvg
+        lv:  optlv
+        size: 10g
+        force: yes
+
+    - name: Create directory /opt if does not exist
+      file:
+        path: /opt
+        state: directory
+        mode: '0755'
+
+    - name: format the xfs filesystem
+      filesystem:
+        fstype: xfs
+        dev: /dev/rootvg/optlv
+
+    - name: mount the optlv on /opt
+      mount:
+        path: /opt
+        src: /dev/rootvg/optlv
+        fstype: xfs
+        state: mounted
+
+    - name: Resize rootlv
+      lvol:
+        vg: rootvg
+        lv: rootlv
+        size: 10g
+        resizefs: true
+        force: yes
+
+    - name: Reisize tmp
+      lvol:
+        vg: rootvg
+        lv: tmplv
+        size: 5g
+        resizefs: true
+        force: yes
+
+    #- name: Resize var
+    #  lvol:
+    #    vg: rootvg
+    #    lv: varlv
+    #    size: 5g
+    #    # resizefs: true
+    #    shrink: true
+    #    force: yes
+
+    - name: Resize home
+      lvol:
+        vg: rootvg
+        lv: homelv
+        size: 2g
+        resizefs: true
+        force: yes
+
+    - name: Cleanup /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        state: absent
+        line: /dev/rootvg/vartmplv /var/tmp1 xfs defaults 0 0
+
