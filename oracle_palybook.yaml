@@ -1,0 +1,47 @@
+---
+- hosts: all
+#  vars_prompt:
+#  - name: pim_user
+#    prompt: What is your PIM User ID
+#    private: no
+#
+#  - name: pim_pwd
+#    prompt: Enter Password
+#    private: yes
+#
+  roles:
+  - role: pkg_install
+    tags:
+      - pkgs
+  - role: kernel_conf
+    tags:
+      - kernel
+  #- role: centrify
+  #  tags:
+  #    - centrify
+  - role: dis_hugepages
+    tags:
+      - hugepages
+#  - role: resolv_conf
+#    tags:
+#      - dns
+  - role: zeroconf
+    tags:
+      - zeroconf
+  - role: dis_selinux
+    tags:
+      - selinux
+  - role: pam_sshd_conf
+    tags:
+      - pam_sshd
+  - role: limits_conf
+    tags:
+      - limits
+  - role: sshd_conf
+    tags:
+      - sshd
+  - role: tmpfs_conf
+    tags:
+      - tmpfs
+#  vars_files:
+#    - "group_vars/servers"
