@@ -8,6 +8,7 @@
   hosts: all
   vars:
     - enbroot_password: '!@&&^#'    # Not a real passwd just a place holder
+                                    # Future fix to store password in the vault
   gather_facts: no
   remote_user: root
   become: true
