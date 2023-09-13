@@ -1,0 +1,20 @@
+---
+# tasks file for sshd_conf
+  - name: update interval
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: 'ClientAliveInterval'
+      line: 'ClientAliveInterval 30'
+      backrefs: yes
+      state: present
+  - name: update countmax
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: 'ClientAliveCountMax'
+      line: 'ClientAliveCountMax 3600'
+      backrefs: yes
+      state: present
+  - name: Restart sshd
+    systemd:
+      name: sshd
+      state: restarted

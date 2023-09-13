@@ -1,0 +1,7 @@
+---
+# tasks file for pam_conf
+- name: Pam Config
+  lineinfile:
+    path: /etc/pam.d/login
+    state: present
+    line: "session required pam_limits.so"

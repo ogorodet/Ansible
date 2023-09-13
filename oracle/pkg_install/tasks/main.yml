@@ -1,0 +1,50 @@
+---
+# tasks file for pkg_install
+ - name: Install Packages
+   #yum:
+   #  state: latest
+   yum:
+     #name: "*"
+     name:
+       - bc
+       - binutils
+       - compat-libcap1
+       - elfutils-libelf
+       - elfutils-libelf-devel
+       - fontconfig-devel
+       - gcc
+       - gcc-c++
+       - glibc
+       - glibc-devel
+       - ksh
+       - libaio
+       - libaio-devel
+       - libgcc
+       - libgcc.i686
+       - libX11
+       - libXau
+       - libXi
+       - libXtst
+       - libXrender
+       - libXrender-devel
+       - libgcc
+       - librdmacm-devel
+       - libstdc++
+       - libstdc++-devel
+       - libxcb
+       - make
+       - net-tools
+       - nfs-utils
+       - python
+       - python-configshell
+       - python-rtslib
+       - python-six
+       - targetcli
+       - smartmontools
+       - sysstat
+       - firefox
+       - psmisc
+       - policycoreutils-python
+       - java-1.8.0-openjdk
+       - /var/tmp/compat-libstdc++-33-3.2.3-72.el7.x86_64.rpm
+     state: latest
