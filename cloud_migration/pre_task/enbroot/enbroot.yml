@@ -7,7 +7,7 @@
 - name: Deploy enbroot
   hosts: all
   vars:
-    - enbroot_password: '!@&&^#'
+    - enbroot_password: '!@&&^#'    # Not a real passwd just a place holder
   gather_facts: no
   remote_user: root
   become: true
