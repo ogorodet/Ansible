@@ -1,0 +1,18 @@
+---
+# tasks file for dis_hugepages NOTE: the grub2-mkconfig seems to screw up GRUB so DON'T USE TIL CORRECTED
+   - name: Directory nothp
+     file:
+       path: /etc/tuned/nothp
+       state: directory
+       mode: "u=rwx,g=rx,o=rx"
+   - name: create tuned.conf
+     copy:
+       dest: "/etc/tuned/nothp/tuned.conf"
+       mode: "0755"
+       content: |
+         [main]
+         include=throughput-performance
+         [vm]
+         transparent_hugepages=never
+   - name: Make profile active
+     shell: /usr/sbin/tuned-adm profile nothp
