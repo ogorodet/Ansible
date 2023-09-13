@@ -1,0 +1,14 @@
+---
+# tasks file for zeroconf
+- name: Fix ZEROCONF
+  lineinfile:
+    path: /etc/sysconfig/network
+    regexp: 'NOZEROCONF=.*'
+    state: present
+    line: "NOZEROCONF=yes"
+    backrefs: yes
+- name: Add ZEROCONF
+  lineinfile:
+    path: /etc/sysconfig/network
+    line: "NOZEROCONF=yes"
+    state: present

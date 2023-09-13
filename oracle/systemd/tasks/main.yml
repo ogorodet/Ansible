@@ -1,0 +1,52 @@
+---
+# tasks file for systemd
+
+    - name: Enable and start autofs
+      systemd:
+        name: autofs
+        state: started
+        enabled: yes
+
+    - name: Enable and start snmpd
+      systemd:
+        name: snmpd
+        state: started
+        enabled: yes
+
+    - name: Enable and start nscd
+      systemd:
+        name: nscd
+        state: started
+        enabled: yes
+
+    - name: Enable and start postfix
+      systemd:
+        name: postfix
+        state: started
+        enabled: yes
+
+    - name: Restart postfix
+      systemd:
+        name: postfix
+        state: restarted
+
+    - name: Restart rsyslog
+      systemd:
+        name: rsyslog
+        state: restarted
+
+    - name: Restart chronyd
+      systemd:
+        name: chronyd
+        state: restarted
+
+    - name: Restart sshd
+      systemd:
+        name: sshd
+        state: restarted
+
+    - name: Stop and Disable services
+      systemd:
+        name: firewalld
+        state: stopped
+        enabled: no

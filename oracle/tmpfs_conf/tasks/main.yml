@@ -1,0 +1,7 @@
+---
+# tasks file for tmpfs_conf
+- name: Config tmpfs
+  lineinfile:
+    path: /etc/fstab
+    state: present
+    line: "tmpfs          /dev/shm           tmpfs    defaults     0 0"
