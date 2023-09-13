@@ -1,0 +1,89 @@
+---
+- hosts: all
+  gather_facts: True
+
+  tasks:
+
+    - name: Gather the package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: backup current repos
+      block:
+        - name: backup dir
+          stat: 
+            path: /etc/yum.repos.d/backup
+          register: repo_bkp_dir
+
+        - name: create repos backup dir
+          file:
+            path: /etc/yum.repos.d/backup
+            state: directory
+            mode: 0755
+            group: root
+            owner: root
+          when: repo_bkp_dir.stat.exists == False
+
+    - name: backup curent repos state
+      shell: |
+        mv -f /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup
+      when: repo_bkp_dir.stat.exists == True
+      ignore_errors: True
+    
+    - name: Register with Satellite
+      shell: |
+        mv /etc/sysconfig/rhn/systemid /etc/sysconfig/rhn/systemid.bak
+        rpm -ivh http://enbpearstlt001.enbridge.com/pub/katello-ca-consumer-latest.noarch.rpm
+        subscription-manager register --org="Enbridge" --activationkey="CV_SAP_HANA-RHEL7" --force
+        subscitption-manager status
+        subsciption-manager repos --enable rhel-7-server-satellite-tools-6.9-rpms
+        subsciption-manager repos --enable Enbridge_Centrify_Centrify
+        subsciption-manager repos --enable rhel-sap-hana-for-rhel-7-server-e4s-rpms
+        subsciption-manager repos --enable rhel-7-server-e4s-rpms
+        subsciption-manager repos --enable rhel-7-server-e4s-optional-rpms
+        yum install katello-host-tools katello-host-tools-tracer katello-agent insights-client -y
+        insights-client --register
+    
+    - name: Configure DNS refresh
+      block:
+        - name: Update centrrify.conf
+          lineinfile:
+            path: /etc/centrifydc/centrifydc.conf
+            state: present
+            line: "{{ item }}"
+          loop:
+            - "adclient.dynamic.dns.enabled: true"
+            - "addns.tcp.timeout: 7"
+            - "adclient.dynamic.dns.refresh.interval: 14400"
+            - "adclient.dynamic.dns.command: /usr/sbin/addns -U -m"
+
+        - name: Reload Centrify Configuration
+          command: adreload
+
+
+    - name: Install Nessus 
+      package:
+        name:  http://enbpearstlt001.enbridge.com/pub/NessusAgent-8.2.0-es{{ hostvars[inventory_hostname].ansible_distribution_major_version }}.x86_64.rpm
+        state: present
+        disable_gpg_check: yes
+      when: "'NessusAgent' not in ansible_facts.packages"  
+
+    - name: Configure Nessus Agent 
+      shell: |
+        service nessusagent stop
+        mv /etc/tenable_tag /var/tmp
+        service nessusagent start
+        /opt/nessus_agent/sbin/nessuscli agent link \ 
+          --key=a92b1d4140bfa74148c5e734f28e51e202525fbcadb1499333f2f12c4edd44db \
+          --groups="Azure Unix Servers" \
+          --host=cloud.tenable.com --port=443
+
+    - name: Install CrowdStrike
+      package:
+        name:  http://enbpearstlt001.enbridge.com/pub/falcon-sensor-5.43.0-10807.el{{ hostvars[inventory_hostname].ansible_distribution_major_version }}.x86_64.rpm
+        state: present
+        disable_gpg_check: yes
+      when: "'falcon-sensor' not in ansible_facts.packages"  
+
+    - name: Configure Connect CrowdStrike
+      command: /opt/CrowdStrike/falconctl -s -f --cid=29181CA8CCFC43D39B1CDC2E5BB37241-9B 

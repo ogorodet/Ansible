@@ -1,0 +1,245 @@
+---
+- hosts: all
+  gather_facts: True
+  vars_prompt:
+  - name: pim_user
+    prompt: What is your PIM User ID
+    private: no
+
+  - name: pim_pwd
+    prompt: Enter Password
+
+  tasks:
+  #  - name: Adjust swap
+  #   block:
+  #     - name: Turn off swap
+  #        shell: swapoff /dev/VgOS/LVswap
+    
+  #     - name: Extend swap partition
+  #       lvol:
+  #         vg: VgOS
+  #         lv: LVswap
+  #         size: 16g
+  #         force: yes
+    
+  #     - name: Rebuild swap
+  #     shell: |
+  #       mkswap /dev/VgOS/LVswap
+  #       swapon /dev/VgOs/LVswap
+
+    - name: Install Packages
+      yum:
+        state: latest
+          # become_user: root
+        name: 
+          - elfutils-libelf-devel
+          - fontconfig-devel
+          - libXrender-devel
+          - librdmacm-devel
+          - python-configshell
+          - python-rtslib
+          - targetcli
+          - xorg-x11-xauth
+          - xorg-x11-utils
+          - xdpyinfo
+          - unzip
+          - compat-libcap1
+          - glibc-devel
+          - ksh
+          - libaio-devel
+          - libX11
+          - libXau
+          - libXi
+          - libXtst
+          - libXrender
+          - libXrender-devel
+          - librdmacm-devel
+          - libstdc++-devel
+          - nfs-utils
+          - smartmontools
+          - sysstat
+          - policycoreutils-python
+          - CentrifyDC
+          - gcc-c++
+          - /var/tmp/compat-libstdc++-33-3.2.3-72.el7.x86_64.rpm
+
+    - name: Configure Centrify
+      block:
+          # - name: Join AD
+          # shell: |
+          #   adjoin -u {{ pim_user }} -p {{ pim_pwd }} -c "cnpl.enbridge.com/Unix/UNIX Hosts" cnpl.enbridge.com -z "cnpl.enbridge.com/Unix/Zones/Global/CNPL" -R Oracle --force
+
+        - name: Centrify Config
+          blockinfile:
+            path: /etc/centrifydc/centrifydc.conf
+            state: present
+            block: |
+              adclient.dynamic.dns.enabled: true
+              addns.tcp.timeout: 7
+              adclient.dynamic.dns.refresh.interval: 14400
+              adclient.dynamic.dns.command: /usr/sbin/addns -U -m
+
+        - name: Reload Centrify
+          command: adreload
+    
+    - name: Config tmpfs
+      lineinfile:
+        path: /etc/fstab
+        state: present
+        line: "tmpfs                   /dev/shm                tmpfs   defaults        0 0"
+
+    - name: Kernel Config
+      copy:
+        dest: /etc/sysctl.conf
+        content: |
+          net.ipv4.ip_forward = 0
+
+          # Controls source route verification
+
+          # Do not accept source routing
+          net.ipv4.conf.default.accept_source_route = 0
+
+          # Controls the System Request debugging functionality of the kernel
+          kernel.sysrq = 0
+
+          # Controls whether core dumps will append the PID to the core filename.
+          # Useful for debugging multi-threaded applications.
+          kernel.core_uses_pid = 1
+
+          # Controls the use of TCP syncookies
+          net.ipv4.tcp_syncookies = 1
+
+          # Controls the default maxmimum size of a mesage queue
+          kernel.msgmnb = 65536
+
+          # Controls the maximum size of a message, in bytes
+          kernel.msgmax = 65536
+
+          # Controls the maximum shared segment size, in bytes
+
+          # Controls the maximum number of shared memory segments, in pages
+
+          # oracle-rdbms-server-12cR1-preinstall setting for fs.file-max is 6815744
+          fs.file-max = 6815744
+
+          # oracle-rdbms-server-12cR1-preinstall setting for kernel.sem is '250 32000 100 128'
+
+          kernel.sem = 250 32000 100 200
+
+          # oracle-rdbms-server-12cR1-preinstall setting for kernel.shmmni is 4096
+          kernel.shmmni = 4096
+
+          # oracle-rdbms-server-12cR1-preinstall setting for kernel.shmall is 1073741824 on x86_64
+          kernel.shmall = 167772160
+
+          # oracle-rdbms-server-12cR1-preinstall setting for kernel.shmmax is 4398046511104 on x86_64
+          kernel.shmmax = 687194767360
+
+          # oracle-rdbms-server-12cR1-preinstall setting for kernel.panic_on_oops is 1
+          kernel.panic_on_oops = 1
+
+          # oracle-rdbms-server-12cR1-preinstall setting for net.core.rmem_default is 262144
+          net.core.rmem_default = 262144
+
+          # oracle-rdbms-server-12cR1-preinstall setting for net.core.rmem_max is 4194304
+          net.core.rmem_max = 8388608
+
+          # oracle-rdbms-server-12cR1-preinstall setting for net.core.wmem_default is 262144
+          net.core.wmem_default = 8388608
+
+          # oracle-rdbms-server-12cR1-preinstall setting for net.core.wmem_max is 1048576
+          net.core.wmem_max = 1048576
+
+          # oracle-rdbms-server-12cR1-preinstall setting for net.ipv4.conf.all.rp_filter is 2
+          net.ipv4.conf.all.rp_filter = 2
+
+          # oracle-rdbms-server-12cR1-preinstall setting for net.ipv4.conf.default.rp_filter is 2
+          net.ipv4.conf.default.rp_filter = 2
+
+          # oracle-rdbms-server-12cR1-preinstall setting for fs.aio-max-nr is 1048576
+          fs.aio-max-nr = 3145728
+
+          # oracle-rdbms-server-12cR1-preinstall setting for net.ipv4.ip_local_port_range is 9000 65500
+          net.ipv4.ip_local_port_range = 9000 65500
+
+          vm.min_free_kbytes = 9437184
+          net.ipv4.ipfrag_high_thresh=16777216
+          net.ipv4.ipfrag_low_thresh=15728640
+          net.ipv4.ipfrag_time=60
+          vm.nr_hugepages = 131072
+          net.ipv4.conf.eno6.rp_filter = 2
+          net.ipv4.conf.eno7.rp_filter = 2
+          net.ipv4.conf.eno8.rp_filter = 2
+
+        # blockinfile:
+        # path: /etc/sysctl.conf
+        # state: present
+        # block: |
+        #   net.core.rmem_default = 262144
+        #   net.core.rmem_max = 4194304
+        #   net.core.wmem_default = 262144
+        #   net.core.wmem_max = 1048576
+        #   fs.aio-max-nr = 1048576
+        #   ##
+        #   kernel.sem = 250 32000 100 200
+        #   fs.file-max = 6815744
+        #   net.ipv4.ip_local_port_range = 9000 65500
+
+    - name: Limits config
+      blockinfile:
+        path: /etc/security/limits.conf
+        state: present
+        block: |
+          oracle   soft   nofile    131072
+          oracle   hard   nofile    131072
+          oracle   soft   nproc    131072
+          oracle   hard   nproc    131072
+          oracle   soft   core    unlimited
+          oracle   hard   core    unlimited
+          oracle   soft   memlock    754974720
+          oracle   hard   memlock    754974720
+
+    - name: Pam Config
+      lineinfile: 
+        path: /etc/pam.d/login
+        state: present
+        line: "session required pam_limits.so"
+
+    - name: Disable HugePages
+      block:
+        - name: Add GRUB configs
+          lineinfile:
+            path: /etc/sysconfig/grub
+            state: present
+            line: 'GRUB_CMDLINE_LINUX="nofb splash=quiet crashkernel=auto spectre_v2=retpoline rd.lvm.lv=vg00/lvroot rd.lvm.lv=vg00/lvswap rhgb quiet transparent_hugepage=never"'
+
+        - name: Rebuild Grub
+          shell: grub2-mkconfig -o /boot/grub2/grub.cfg
+
+    - name: Disable selinux
+      lineinfile:
+        path: /etc/selinux/config
+        state: present
+        line: "set SELINUX=disabled"
+
+    - name: ssh config
+      lineinfile: 
+        path: /etc/ssh/sshd_config 
+        state: present
+        line: "LoginGraceTime 0"
+
+    - name: Fix DNS
+      copy: 
+        dest: /etc/resolv.conf
+        content: |
+          search enbridge.com cnpl.enbridge.com egd.enbridge.com gtna.gt.ds uspl.enbridge.com
+          options rotate timeout:1
+          nameserver 10.28.43.53
+          nameserver 10.33.180.53
+          nameserver  10.66.180.53
+
+    - name: Fix ZEROCONF
+      lineinfile: 
+        path: /etc/sysconfig/network
+        state: present
+        line: "NOZEROCONF=yes"

@@ -1,0 +1,50 @@
+---
+- name: Deploy enbroot
+  hosts: all
+  vars:
+    - enbroot_password: 'Enbr!d9e'
+  gather_facts: no
+  remote_user: root
+  become: true
+
+  tasks:
+    - name: Add a group for enbroot
+      group:
+        name: enbroot
+        gid: 1666
+        state: present
+  
+    - name: Add a new user named enbroot
+      user:
+         name: enbroot
+         uid: 1666
+         group: enbroot
+         shell: /bin/bash
+         password: "{{ enbroot_password | password_hash('sha512') }}"
+  
+    - name: Add enbroot user to the sudoers
+      lineinfile:
+        dest: "/etc/sudoers"
+        state: "present"
+        line: "enbroot  ALL=(ALL)  NOPASSWD: ALL"
+  
+    - name: Set ownership on home
+      file: 
+        path: /home/enbroot
+        state: directory
+        owner: enbroot
+        group: enbroot
+
+    - name: Create .ssh folder
+      file:
+        path: ~enbroot/.ssh
+        state: directory
+        owner: enbroot
+        group: enbroot
+        mode: 0700
+
+    - name: Add SSH key
+      authorized_key:
+        user: enbroot
+        state: present
+        key: "{{ lookup('file', '/home/gorodeto/wip/enbroot/keys/id_rsa.pub') }}"

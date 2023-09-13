@@ -1,0 +1,85 @@
+---
+# playbook: enbroot
+# Author: Olegh Gorodetsky
+# Version: 1.2
+# Comments: Added steps to disble centrify so the local account does not clash with AD
+# #
+- name: Deploy enbroot
+  hosts: all
+  vars:
+    - enbroot_password: 'Enbr!d9e'
+  gather_facts: no
+  remote_user: root
+  become: true
+
+  tasks:
+    - name: Stop Centrify
+      service:
+        name: centrifydc 
+        state: stopped
+
+    - name: Flash Centrify cache
+      shell: |
+        adflush -f -y
+
+    - name: Install sudo
+      package:
+        name: sudo
+        state: present
+
+    - name: Add a group for enbroot
+      group:
+        name: enbroot
+        gid: 1666
+        state: present
+  
+    - name: Add a new user named enbroot
+      user:
+         name: enbroot
+         uid: 1666
+         group: enbroot
+         shell: /bin/bash
+         expires: -1
+         password: "{{ enbroot_password | password_hash('sha512') }}"
+         state: present
+
+    - name: Add enbroot to centrify user.ignore file
+      lineinfile:
+        dest: "/etc/centrifydc/user.ignore"
+        state: "present"
+        line: "enbroot"
+  
+    - name: Add enbroot user to the sudoers
+      lineinfile:
+        dest: "/etc/sudoers"
+        state: "present"
+        line: '{{ item }}'
+      loop:
+        - "enbroot  ALL=(ALL)  NOPASSWD: ALL"
+        - "Defaults:enbroot !requiretty"
+  
+    - name: Set ownership on home
+      file: 
+        path: /home/enbroot
+        state: directory
+        owner: enbroot
+        group: enbroot
+
+    - name: Create .ssh folder
+      file:
+        path: /home/enbroot/.ssh
+        state: directory
+        owner: enbroot
+        group: enbroot
+        mode: 0700
+
+    - name: Add SSH key
+      authorized_key:
+        user: enbroot
+        state: present
+        key: "{{ lookup('file', 'keys/id_rsa.pub') }}"
+
+    - name: Start Centrify
+      service:
+        name: centrifydc 
+        state: started

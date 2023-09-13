@@ -1,0 +1,22 @@
+---
+- hosts: all
+  gather_facts: True
+
+
+  tasks:
+
+    - name: Gather the package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Centrify Config
+      lineinfile:
+        path: /etc/centrifydc/centrifydc.conf
+        state: present
+        line: "{{ item }}"
+      loop:
+        - "adclient.dynamic.dns.enabled: true"
+        - "addns.tcp.timeout: 7"
+        - "adclient.dynamic.dns.refresh.interval: 14400"
+        - "adclient.dynamic.dns.command: /usr/sbin/addns -U -m"
+

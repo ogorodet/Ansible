@@ -1,0 +1,31 @@
+---
+- hosts: all
+  gather_facts: True
+  vars_prompts:
+
+
+    - name: sat_user
+      prompt: What is your Satellite Server username?
+      private: no
+
+    - name: sat_passowrd
+      prompt: Enter Password
+
+  tasks:
+
+    - name: Centrify Config
+      blockinfile:
+        dest: /etc/centrifydc/centrifydc.conf
+        block: |
+          adclient.dynamic.dns.enabled: true
+          addns.tcp.timeout: 7
+          adclient.dynamic.dns.refresh.interval: 14400
+          adclient.dynamic.dns.command: /usr/sbin/addns -U -m
+        state: present
+
+    - name: Nessus Agent
+      shell: |
+        service nessusagent stop
+        mv /etc/tenable_tag /var/tmp
+        service nessusagent start
+        /opt/nessus_agent/sbin/nessuscli agent link --key=a92b1d4140bfa74148c5e734f28e51e202525fbcadb1499333f2f12c4edd44db --groups="Azure Unix Servers" --host=cloud.tenable.com --port=443

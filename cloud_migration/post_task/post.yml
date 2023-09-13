@@ -1,0 +1,89 @@
+---
+- hosts: all
+  gather_facts: True
+
+
+  vars_prompt:
+    - name: sat_user
+      prompt: What is your Satellite Server username?
+      private: no
+
+    - name: sat_password
+      prompt: Enter Password
+
+  tasks:
+
+    - name: Gather the package facts
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Move Satellite
+      shell: |
+        subscription-manager repos --enable rhel-{{ hostvars[inventory_hostname].ansible_distribution_major_version }}-server-satellite-tools-6.8-rpms
+        cd /var/tmp
+        wget http://enbpearstlt001.enbridge.com/pub/bootstrap.py
+        chmod +x /var/tmp/bootstrap.py
+        ./bootstrap.py --new-capsule --server enbpearstlt001.enbridge.com \
+            --activationkey="prod-rhel{{ hostvars[inventory_hostname].ansible_distribution_major_version }}-key" \
+            -u {{ sat_user }} -p {{ sat_password }} --force
+      ignore_errors: True 
+
+    - name: Centrify Config
+      lineinfile:
+        path: /etc/centrifydc/centrifydc.conf
+        state: present
+        line: "{{ item }}"
+      loop:
+        - "adclient.dynamic.dns.enabled: true"
+        - "addns.tcp.timeout: 7"
+        - "adclient.dynamic.dns.refresh.interval: 14400"
+        - "adclient.dynamic.dns.command: /usr/sbin/addns -U -m -e ens192"
+
+    - name: remove enbroot from centrify user.ignore file
+      lineinfile:
+        dest: "/etc/centrifydc/user.ignore"
+        state: "absent"
+        line: "enbroot"
+
+    - name: Centrity Reload new config
+      command: adreload
+
+
+    - name: Remove sudo
+      package:
+        name: sudo
+        state: absent
+
+    - name: Create symbolic link for sudo
+      file:
+        src: "/usr/bin/dzdo"
+        dest: "/usr/bin/sudo"
+        state: link
+
+    - name: Install Nessus 
+      package:
+        name:  http://enbpearstlt001.enbridge.com/pub/NessusAgent-8.2.0-es{{ hostvars[inventory_hostname].ansible_distribution_major_version }}.x86_64.rpm
+        state: present
+        disable_gpg_check: yes
+      when: "'NessusAgent' not in ansible_facts.packages"  
+
+    - name: Configure Nessus Agent 
+      shell: |
+        service nessusagent stop
+        mv /etc/tenable_tag /var/tmp
+        service nessusagent start
+        /opt/nessus_agent/sbin/nessuscli agent link \ 
+          --key=a92b1d4140bfa74148c5e734f28e51e202525fbcadb1499333f2f12c4edd44db \
+          --groups="Azure Unix Servers" \
+          --host=cloud.tenable.com --port=443
+
+    - name: Install CrowdStrike
+      package:
+        name:  http://enbpearstlt001.enbridge.com/pub/falcon-sensor-5.43.0-10807.el{{ hostvars[inventory_hostname].ansible_distribution_major_version }}.x86_64.rpm
+        state: present
+        disable_gpg_check: yes
+      when: "'falcon-sensor' not in ansible_facts.packages"  
+
+    - name: Configure Connect CrowdStrike
+      command: /opt/CrowdStrike/falconctl -s -f --cid=29181CA8CCFC43D39B1CDC2E5BB37241-9B
+

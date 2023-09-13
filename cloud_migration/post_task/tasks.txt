@@ -1,0 +1,25 @@
+# Move to capsule
+major_version=$(rpm -q --queryformat '%{RELEASE}' rpm | grep -o [[:digit:]]*\$)
+
+case ${major_version} in
+        5 )   ./bootstrap.py --new-capsule --server enbpearstlt001.enbridge.com --activationkey="prod-rhel5-key" -u gorodeto -p not24get ;;
+        6 )    ./bootstrap.py --new-capsule --server enbpearstlt001.enbridge.com --activationkey="prod-rhel6-key" -u gorodeto -p not24get ;;
+        7 )    ./bootstrap.py --new-capsule --server enbpearstlt001.enbridge.com --activationkey="prod-rhel7-key" -u gorodeto -p not24get ;;
+        * )  echo "Unknown Version" ;;
+esac
+
+subscription-manager status
+
+
+# repoint to cloud nessus scanner
+
+case ${major_version} in
+        6 )      yum install -y http://enbpearstlt001.enbridge.com/pub/NessusAgent-7.7.0-es6.x86_64.rpm ;;
+        7 )      yum install -y http://enbpearstlt001.enbridge.com/pub/NessusAgent-7.7.0-es7.x86_64.rpm ;;
+        * )   echo "No RPM found..." ;;
+esac
+
+service nessusagent stop
+mv /etc/tenable_tag /var/tmp
+service nessusagent start
+/opt/nessus_agent/sbin/nessuscli agent link --key=a92b1d4140bfa74148c5e734f28e51e202525fbcadb1499333f2f12c4edd44db --groups="Azure Unix Servers" --host=cloud.tenable.com --port=443
