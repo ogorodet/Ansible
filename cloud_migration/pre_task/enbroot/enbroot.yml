@@ -7,7 +7,7 @@
 - name: Deploy enbroot
   hosts: all
   vars:
-    - enbroot_password: 'Enbr!d9e'
+    - enbroot_password: '!@&&^#'
   gather_facts: no
   remote_user: root
   become: true
